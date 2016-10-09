@@ -1,0 +1,301 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F04516301DA9F7C800EB8D93 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F045162F1DA9F7C800EB8D93 /* AppDelegate.swift */; };
+		F04516321DA9F7C800EB8D93 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04516311DA9F7C800EB8D93 /* ViewController.swift */; };
+		F04516351DA9F7C800EB8D93 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F04516331DA9F7C800EB8D93 /* Main.storyboard */; };
+		F04516371DA9F7C800EB8D93 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F04516361DA9F7C800EB8D93 /* Assets.xcassets */; };
+		F04516411DA9F90700EB8D93 /* chevre_de_verzasca.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F04516401DA9F90700EB8D93 /* chevre_de_verzasca.jpg */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F045162C1DA9F7C800EB8D93 /* jesuisunechev.re.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jesuisunechev.re.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F045162F1DA9F7C800EB8D93 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F04516311DA9F7C800EB8D93 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		F04516341DA9F7C800EB8D93 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		F04516361DA9F7C800EB8D93 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F04516381DA9F7C800EB8D93 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F04516401DA9F90700EB8D93 /* chevre_de_verzasca.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = chevre_de_verzasca.jpg; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F04516291DA9F7C800EB8D93 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F04516231DA9F7C800EB8D93 = {
+			isa = PBXGroup;
+			children = (
+				F045162E1DA9F7C800EB8D93 /* jesuisunechev.re */,
+				F045162D1DA9F7C800EB8D93 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F045162D1DA9F7C800EB8D93 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F045162C1DA9F7C800EB8D93 /* jesuisunechev.re.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F045162E1DA9F7C800EB8D93 /* jesuisunechev.re */ = {
+			isa = PBXGroup;
+			children = (
+				F045162F1DA9F7C800EB8D93 /* AppDelegate.swift */,
+				F04516311DA9F7C800EB8D93 /* ViewController.swift */,
+				F04516331DA9F7C800EB8D93 /* Main.storyboard */,
+				F04516361DA9F7C800EB8D93 /* Assets.xcassets */,
+				F04516381DA9F7C800EB8D93 /* Info.plist */,
+				F04516401DA9F90700EB8D93 /* chevre_de_verzasca.jpg */,
+			);
+			path = jesuisunechev.re;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F045162B1DA9F7C800EB8D93 /* jesuisunechev.re */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F045163B1DA9F7C800EB8D93 /* Build configuration list for PBXNativeTarget "jesuisunechev.re" */;
+			buildPhases = (
+				F04516281DA9F7C800EB8D93 /* Sources */,
+				F04516291DA9F7C800EB8D93 /* Frameworks */,
+				F045162A1DA9F7C800EB8D93 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = jesuisunechev.re;
+			productName = jesuisunechev.re;
+			productReference = F045162C1DA9F7C800EB8D93 /* jesuisunechev.re.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F04516241DA9F7C800EB8D93 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0800;
+				LastUpgradeCheck = 0800;
+				ORGANIZATIONNAME = jesuisunechev.re;
+				TargetAttributes = {
+					F045162B1DA9F7C800EB8D93 = {
+						CreatedOnToolsVersion = 8.0;
+						DevelopmentTeam = SDQP3CLTB9;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = F04516271DA9F7C800EB8D93 /* Build configuration list for PBXProject "jesuisunechev.re" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F04516231DA9F7C800EB8D93;
+			productRefGroup = F045162D1DA9F7C800EB8D93 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F045162B1DA9F7C800EB8D93 /* jesuisunechev.re */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F045162A1DA9F7C800EB8D93 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F04516371DA9F7C800EB8D93 /* Assets.xcassets in Resources */,
+				F04516411DA9F90700EB8D93 /* chevre_de_verzasca.jpg in Resources */,
+				F04516351DA9F7C800EB8D93 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F04516281DA9F7C800EB8D93 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F04516321DA9F7C800EB8D93 /* ViewController.swift in Sources */,
+				F04516301DA9F7C800EB8D93 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		F04516331DA9F7C800EB8D93 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				F04516341DA9F7C800EB8D93 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		F04516391DA9F7C800EB8D93 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		F045163A1DA9F7C800EB8D93 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = appletvos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 10.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F045163C1DA9F7C800EB8D93 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				DEVELOPMENT_TEAM = SDQP3CLTB9;
+				INFOPLIST_FILE = jesuisunechev.re/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "re.jesuisunechev.jesuisunechev-re";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Debug;
+		};
+		F045163D1DA9F7C800EB8D93 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				DEVELOPMENT_TEAM = SDQP3CLTB9;
+				INFOPLIST_FILE = jesuisunechev.re/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "re.jesuisunechev.jesuisunechev-re";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F04516271DA9F7C800EB8D93 /* Build configuration list for PBXProject "jesuisunechev.re" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F04516391DA9F7C800EB8D93 /* Debug */,
+				F045163A1DA9F7C800EB8D93 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F045163B1DA9F7C800EB8D93 /* Build configuration list for PBXNativeTarget "jesuisunechev.re" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F045163C1DA9F7C800EB8D93 /* Debug */,
+				F045163D1DA9F7C800EB8D93 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F04516241DA9F7C800EB8D93 /* Project object */;
+}
