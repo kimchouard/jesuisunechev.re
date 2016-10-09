@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title qtlid="187136">Je suis une chèvre</title>
+	<meta http-equiv="Content-Language" content="fr" />
+	<meta http-equiv="description" name="description" content="Etre une chèvre, tout un art de vie." />
+	<meta http-equiv="identifier-url" name="Identifier-URL" content="chevre, etre, boulettes, maladroit" />
+	<meta http-equiv="revisit-after" name="Revisit-after" content="10 days" />
+	<meta http-equiv="robots" name="Robots" content="all" />
+	<meta name="robots" content="INDEX|FOLLOW" />
+	<meta http-equiv="cache-control" content="no-cache" />
+	<meta http-equiv="pragma" content="no-cache" />
+	<link rel="icon" href="http://jesuisunechev.re/favicon.ico" type="image/gif" translate="none" />
+	<link type="text/css" rel="stylesheet" href="css/style.css"  />
+	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery.hoverIntent.minified.js"></script>
+</head>
+<body>
+	<div id="chevre">
+		<img src="img/chevre_de_verzasca.jpg" alt="Etre une chèvre, tout un art de vie" title="Etre une chèvre, tout un art de vie" />
+	</div>
+
+	<script type="text/javascript">
+
+	/*
+	Simple Image Trail script- By JavaScriptKit.com
+	Visit http://www.javascriptkit.com for this script and more
+	This notice must stay intact
+	*/
+
+	var trailimage=["goat.gif", 240, 180] //image path, plus width and height
+	var offsetfrommouse=[10,50] //image x,y offsets from cursor position in pixels. Enter 0,0 for no offset
+	var displayduration=0 //duration in seconds image should remain visible. 0 for always.
+
+	if (document.getElementById || document.all)
+	document.write('<div id="trailimageid" style="position:absolute;visibility:visible;left:0px;top:0px;width:1px;height:1px"><img src="http://jesuisunechev.re/'+trailimage[0]+'" border="0" width="'+trailimage[1]+'px" height="'+trailimage[2]+'px"></div>')
+
+	function gettrailobj(){
+	if (document.getElementById)
+	return document.getElementById("trailimageid").style
+	else if (document.all)
+	return document.all.trailimagid.style
+	}
+
+	function truebody(){
+	return (!window.opera && document.compatMode && document.compatMode!="BackCompat")? document.documentElement : document.body
+	}
+
+	function hidetrail(){
+	gettrailobj().visibility="hidden"
+	document.onmousemove=""
+
+	}
+
+	function followmouse(e){
+	var xcoord=offsetfrommouse[0]
+	var ycoord=offsetfrommouse[1]
+	if (typeof e != "undefined"){
+	xcoord+=e.pageX
+	ycoord+=e.pageY
+	}
+	else if (typeof window.event !="undefined"){
+	xcoord+=truebody().scrollLeft+event.clientX
+	ycoord+=truebody().scrollTop+event.clientY
+	}
+	var docwidth=document.all? truebody().scrollLeft+truebody().clientWidth : pageXOffset+window.innerWidth-15
+	var docheight=document.all? Math.max(truebody().scrollHeight, truebody().clientHeight) : Math.max(document.body.offsetHeight, window.innerHeight)
+	if (xcoord+trailimage[1]+3>docwidth || ycoord+trailimage[2]> docheight)
+	gettrailobj().display="none"
+	else 
+	gettrailobj().display=""
+	gettrailobj().left=xcoord+"px"
+	gettrailobj().top=ycoord+"px"
+	}
+
+	document.onmousemove=followmouse
+
+	if (displayduration>0)
+	setTimeout("hidetrail()", displayduration*1000)
+
+	</script>
+</body>
+</html>
