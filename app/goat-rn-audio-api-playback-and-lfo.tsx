@@ -1,7 +1,7 @@
 import { Image as ExpoImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
-import { AudioBufferSourceNode, AudioContext, GainNode, OscillatorNode } from 'react-native-audio-api';
+import { AudioBufferSourceNode, AudioContext, BiquadFilterNode, GainNode, OscillatorNode } from 'react-native-audio-api';
 import RnAudioBuffer from 'react-native-audio-api/lib/typescript/core/AudioBuffer';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
@@ -18,11 +18,15 @@ const audioFileUri = require('../assets/audio/chevre.mp3');
 
 const MAX_ROTATE_Y_DEGREES = 45;
 const MAX_ROTATE_X_DEGREES = 30;
-const LFO_MIN_FREQ = 0.5; 
-const LFO_MAX_FREQ = 15; // Adjusted for more perceptible volume flutter
-const LFO_MIN_DEPTH = 0.0;  // LFO Depth is 0 at center Y
-const LFO_MAX_DEPTH = 0.5;  // Max depth allows 0-1 volume swing with MAIN_GAIN_BASE = 0.5
-const MAIN_GAIN_BASE = 0.5; 
+const LFO_MIN_FREQ_EFFECT = 0.5; // Min speed of LFO for effects
+const LFO_MAX_FREQ_EFFECT = 8;   // Max speed of LFO for effects (e.g., wah speed)
+const FILTER_MIN_FREQ = 200;     // Base frequency of filter when Y is at center or below
+const FILTER_MAX_FREQ = 3000;    // Max frequency for filter sweep (wah top)
+const FILTER_MIN_Q = 0.5;        // Filter Q when Y is at center or below (less resonance)
+const FILTER_MAX_Q = 10;         // Filter Q at max Y for strong wah resonance
+const LFO_FILTER_SWEEP_DEPTH_MIN = 50; // Min amount LFO moves filter freq (Hz)
+const LFO_FILTER_SWEEP_DEPTH_MAX = 1500; // Max amount LFO moves filter freq (Hz)
+const MAIN_GAIN_BASE = 0.7; // Keep main volume reasonable
 const FIXED_PLAYBACK_RATE = 1;
 
 // Create an animatable version of ExpoImage
@@ -31,7 +35,7 @@ const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
 // Helper to give AudioContext a unique ID for logging
 let audioContextInstanceCounter = 0;
 
-export default function GoatRnAudioApiPitchAndLfoScreen() {
+export default function GoatCreativeAudioEffectsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [containerSize, setContainerSize] = useState({ width: Dimensions.get('window').width, height: Dimensions.get('window').height });
 
@@ -41,6 +45,7 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
   const mainGainNodeRef = useRef<GainNode | null>(null);
   const lfoNodeRef = useRef<OscillatorNode | null>(null);
   const lfoGainNodeRef = useRef<GainNode | null>(null);
+  const filterNodeRef = useRef<BiquadFilterNode | null>(null);
 
   const gestureX = useSharedValue(0);
   const gestureY = useSharedValue(0);
@@ -116,19 +121,9 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
     };
   }, []);
 
-  const calculateLfoFrequency = (locationY: number, height: number): number => {
-    if (height === 0) return LFO_MIN_FREQ;
-    const normalizedY = 1 - Math.max(0, Math.min(1, locationY / height)); 
-    return LFO_MIN_FREQ + (normalizedY * (LFO_MAX_FREQ - LFO_MIN_FREQ));
-  };
-
-  // Updated function for LFO depth: 0 at center, max at top/bottom
-  const calculateLfoDepth = (locationY: number, height: number): number => {
-    if (height === 0) return LFO_MIN_DEPTH; // Should be 0 if LFO_MIN_DEPTH is 0
-    // Normalize Y from -1 (bottom) to +1 (top), with 0 at center
-    const normalizedYCentered = ((height - locationY) / height) * 2 - 1; 
-    const absNormalizedY = Math.abs(normalizedYCentered); 
-    return LFO_MIN_DEPTH + (absNormalizedY * (LFO_MAX_DEPTH - LFO_MIN_DEPTH));
+  const getNormalizedYCentered = (locationY: number, height: number): number => {
+    if (height === 0) return 0;
+    return ((height - locationY) / height) * 2 - 1; 
   };
 
   const panGesture = Gesture.Pan()
@@ -141,18 +136,15 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
 
       const audioContext = audioContextRef.current;
       const audioBuffer = audioBufferRef.current;
-      if (!audioContext || !audioBuffer) {
-        console.warn("[Gesture] AudioContext or AudioBuffer not ready in onBegin.");
-        if(isLoading) console.warn("[Gesture] Still loading audio data.");
-        return;
-      }
+      if (!audioContext || !audioBuffer || isLoading) { console.warn("[Gesture] Audio not ready."); return; }
       if (audioContext.state === 'suspended') await audioContext.resume();
 
       try {
         playerNodeRef.current?.stop(); playerNodeRef.current?.disconnect();
         lfoNodeRef.current?.stop(); lfoNodeRef.current?.disconnect();
-        mainGainNodeRef.current?.disconnect(); 
+        mainGainNodeRef.current?.disconnect();
         lfoGainNodeRef.current?.disconnect();
+        filterNodeRef.current?.disconnect();
 
         const pNode = await audioContext.createBufferSource();
         pNode.buffer = audioBuffer;
@@ -164,25 +156,45 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
         mGain.gain.value = MAIN_GAIN_BASE;
         mainGainNodeRef.current = mGain;
 
+        const filter = await audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filterNodeRef.current = filter;
+
         const lfo = await audioContext.createOscillator();
-        lfo.type = 'square'; 
-        const initialLfoFreq = calculateLfoFrequency(event.y, containerSize.height);
-        lfo.frequency.value = initialLfoFreq;
+        lfo.type = 'sine';
         lfoNodeRef.current = lfo;
 
         const lGain = await audioContext.createGain();
-        const initialLfoDepth = calculateLfoDepth(event.y, containerSize.height);
-        lGain.gain.value = initialLfoDepth;
         lfoGainNodeRef.current = lGain;
 
+        const normYCentered = getNormalizedYCentered(event.y, containerSize.height);
+        
+        const initialLfoFreq = LFO_MIN_FREQ_EFFECT + (Math.abs(normYCentered) * (LFO_MAX_FREQ_EFFECT - LFO_MIN_FREQ_EFFECT));
+        lfo.frequency.value = initialLfoFreq;
+
+        if (normYCentered >= 0) {
+          console.log("[onBegin] Activating Filter Wah");
+          const yPosUp = normYCentered;
+          filter.frequency.value = FILTER_MIN_FREQ + (yPosUp * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+          filter.Q.value = FILTER_MIN_Q + (yPosUp * (FILTER_MAX_Q - FILTER_MIN_Q));
+          lGain.gain.value = LFO_FILTER_SWEEP_DEPTH_MIN + (yPosUp * (LFO_FILTER_SWEEP_DEPTH_MAX - LFO_FILTER_SWEEP_DEPTH_MIN));
+          lfoGainNodeRef.current.connect(filterNodeRef.current);
+        } else {
+          console.log("[onBegin] Y Down - Neutralizing Filter (Flanger TBD)");
+          filter.frequency.value = FILTER_MAX_FREQ;
+          filter.Q.value = 0.1;
+          lGain.gain.value = 0;
+          lfoGainNodeRef.current.connect(filterNodeRef.current);
+        }
+
         playerNodeRef.current.connect(mainGainNodeRef.current);
-        mainGainNodeRef.current.connect(audioContext.destination);
+        mainGainNodeRef.current.connect(filterNodeRef.current);
+        filterNodeRef.current.connect(audioContext.destination);
         lfoNodeRef.current.connect(lfoGainNodeRef.current);
-        lfoGainNodeRef.current.connect(mainGainNodeRef.current); 
 
         lfoNodeRef.current.start(audioContext.currentTime);
         playerNodeRef.current.start(audioContext.currentTime);
-        console.log(`[Gesture] Sound started. Fixed Rate: ${FIXED_PLAYBACK_RATE}, LFO Freq: ${initialLfoFreq.toFixed(2)}, LFO Depth: ${initialLfoDepth.toFixed(2)}`);
+        console.log(`[Gesture] Sound started. LFO Freq: ${initialLfoFreq.toFixed(2)}`);
       } catch (error) {
         console.error("[Gesture] Failed to start sound (onBegin try/catch):", error);
       }
@@ -190,19 +202,23 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
     .onUpdate((event) => {
       if (!isActive.value) return;
       gestureX.value = event.x;
-      gestureY.value = event.y; 
+      gestureY.value = event.y;
       const audioContext = audioContextRef.current;
-      
-      if (lfoNodeRef.current?.frequency && lfoGainNodeRef.current?.gain && audioContext) {
-        const newLfoFreq = calculateLfoFrequency(event.y, containerSize.height);
-        const newLfoDepth = calculateLfoDepth(event.y, containerSize.height); // Calculate new depth
-        // console.log(`[Gesture Update] event.y: ${event.y.toFixed(2)}, LFO Freq: ${newLfoFreq.toFixed(2)}, LFO Depth: ${newLfoDepth.toFixed(2)}`); // Keep this for debugging
-        lfoNodeRef.current.frequency.value = newLfoFreq;
-        lfoGainNodeRef.current.gain.value = newLfoDepth; // Update LFO depth
+      if (!audioContext || !filterNodeRef.current || !lfoNodeRef.current || !lfoGainNodeRef.current) return;
+
+      const normYCentered = getNormalizedYCentered(event.y, containerSize.height);
+      const currentLfoFreq = LFO_MIN_FREQ_EFFECT + (Math.abs(normYCentered) * (LFO_MAX_FREQ_EFFECT - LFO_MIN_FREQ_EFFECT));
+      lfoNodeRef.current.frequency.value = currentLfoFreq;
+
+      if (normYCentered >= 0) {
+        const yPosUp = normYCentered;
+        filterNodeRef.current.frequency.value = FILTER_MIN_FREQ + (yPosUp * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+        filterNodeRef.current.Q.value = FILTER_MIN_Q + (yPosUp * (FILTER_MAX_Q - FILTER_MIN_Q));
+        lfoGainNodeRef.current.gain.value = LFO_FILTER_SWEEP_DEPTH_MIN + (yPosUp * (LFO_FILTER_SWEEP_DEPTH_MAX - LFO_FILTER_SWEEP_DEPTH_MIN));
       } else {
-        if (isActive.value) {
-            console.warn("[Gesture Update] LFO/Gain Node or params not available or audioContext missing.");
-        }
+        filterNodeRef.current.frequency.value = FILTER_MAX_FREQ;
+        filterNodeRef.current.Q.value = 0.1;
+        lfoGainNodeRef.current.gain.value = 0;
       }
     })
     .onFinalize((event, success) => {
@@ -211,7 +227,7 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
       gestureX.value = withSpring(containerSize.width / 2, { damping: 15, stiffness: 120 });
       gestureY.value = withSpring(containerSize.height / 2, { damping: 15, stiffness: 120 });
       const audioContext = audioContextRef.current;
-      console.log(`[Gesture] onFinalize - Success: ${success} (Context ID: ${audioContext?.instanceId})`);
+      console.log(`[Gesture] onFinalize (Context ID: ${audioContext?.instanceId})`);
       
       playerNodeRef.current?.stop();
       lfoNodeRef.current?.stop();
@@ -219,12 +235,13 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
       lfoNodeRef.current?.disconnect();
       mainGainNodeRef.current?.disconnect();
       lfoGainNodeRef.current?.disconnect();
-
+      filterNodeRef.current?.disconnect();
       playerNodeRef.current = null;
       lfoNodeRef.current = null;
       mainGainNodeRef.current = null;
       lfoGainNodeRef.current = null;
-      console.log("[Gesture] Sound stopped and all nodes disconnected via onFinalize.");
+      filterNodeRef.current = null;
+      console.log("[Gesture] Sound stopped and all nodes disconnected.");
     });
 
   const animatedStyle = useAnimatedStyle(() => {
