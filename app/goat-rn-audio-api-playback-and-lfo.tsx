@@ -190,26 +190,29 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
         lfoGainNodeRef.current = lGain;
 
         console.log(`[Gesture] Connecting audio graph (Context ID: ${audioContext.instanceId}) - Step 1: Player to MainGain`);
-        console.log(`  Player Node Context ID (expected ${audioContext.instanceId}):`, (playerNodeRef.current.context as any)?.instanceId);
-        console.log(`  MainGain Node Context ID (expected ${audioContext.instanceId}):`, (mainGainNodeRef.current.context as any)?.instanceId);
+        console.log(`  Player Node (ID: ${(playerNodeRef.current as any).id}, Context ID: ${(playerNodeRef.current.context as any)?.instanceId})`);
+        console.log(`  MainGain Node (ID: ${(mainGainNodeRef.current as any).id}, Context ID: ${(mainGainNodeRef.current.context as any)?.instanceId})`);
         playerNodeRef.current.connect(mainGainNodeRef.current);
 
         console.log(`[Gesture] Connecting audio graph (Context ID: ${audioContext.instanceId}) - Step 2: MainGain to Destination`);
-        console.log(`  MainGain Node Context ID (expected ${audioContext.instanceId}):`, (mainGainNodeRef.current.context as any)?.instanceId);
-        // console.log(`  Destination Node Context ID: ${audioContext.destination.context.instanceId}`); // Destination doesn't have context.context
+        console.log(`  MainGain Node (ID: ${(mainGainNodeRef.current as any).id}, Context ID: ${(mainGainNodeRef.current.context as any)?.instanceId})`);
         mainGainNodeRef.current.connect(audioContext.destination);
 
         console.log(`[Gesture] Connecting audio graph (Context ID: ${audioContext.instanceId}) - Step 3: LFO to LFOGain`);
-        console.log(`  LFO Node Context ID (expected ${audioContext.instanceId}):`, (lfoNodeRef.current.context as any)?.instanceId);
-        console.log(`  LFOGain Node Context ID (expected ${audioContext.instanceId}):`, (lfoGainNodeRef.current.context as any)?.instanceId);
+        console.log(`  LFO Node (ID: ${(lfoNodeRef.current as any).id}, Context ID: ${(lfoNodeRef.current.context as any)?.instanceId})`);
+        console.log(`  LFOGain Node (ID: ${(lfoGainNodeRef.current as any).id}, Context ID: ${(lfoGainNodeRef.current.context as any)?.instanceId})`);
         lfoNodeRef.current.connect(lfoGainNodeRef.current);
 
         console.log(`[Gesture] Connecting audio graph (Context ID: ${audioContext.instanceId}) - Step 4: LFOGain to MainGain.gain`);
-        console.log(`  LFOGain Node Context ID (expected ${audioContext.instanceId}):`, (lfoGainNodeRef.current.context as any)?.instanceId);
-        console.log(`  MainGain Node (for .gain param) Context ID (expected ${audioContext.instanceId}):`, (mainGainNodeRef.current.context as any)?.instanceId);
-        // The .gain AudioParam itself also has a .context property in standard Web Audio API
-        console.log(`  MainGain.gain AudioParam Context ID (expected ${audioContext.instanceId}):`, ((mainGainNodeRef.current.gain as any).context as any)?.instanceId);
-        lfoGainNodeRef.current.connect(mainGainNodeRef.current.gain);
+        const lfoGainNode = lfoGainNodeRef.current;
+        const mainGainNodeForParam = mainGainNodeRef.current;
+        const targetParam = mainGainNodeForParam;
+
+        console.log(`  Source: LFOGain Node (ID: ${(lfoGainNode as any).id}, Context ID: ${(lfoGainNode.context as any)?.instanceId})`);
+        console.log(`  Target Node for Param: MainGain Node (ID: ${(mainGainNodeForParam as any).id}, Context ID: ${(mainGainNodeForParam.context as any)?.instanceId})`);
+        console.log(`  Target Param: gain, (Param's own Context ID: ${((targetParam as any).context as any)?.instanceId})`);
+        
+        lfoGainNode.connect(targetParam);
 
         console.log(`[Gesture] Starting LFO and PlayerNode (Context ID: ${audioContext.instanceId})`);
         lfoNodeRef.current.start(audioContext.currentTime);
