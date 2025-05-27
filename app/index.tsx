@@ -1,6 +1,6 @@
 import { useAudioPlayer } from 'expo-audio';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 const chevreImage = require('../assets/images/chevre_de_verzasca.jpg');
 const chevreSound = require('../assets/audio/chevre.mp3');
@@ -19,29 +19,14 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={playSound} style={styles.touchable}>
+    <View className="flex-1 bg-black">
+      <Pressable onPress={playSound} className='flex-1'>
         <Image
           source={chevreImage}
-          style={styles.image}
+          className="w-full h-full"
           contentFit="cover"
         />
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  touchable: {
-    flex: 1,
-  },
-  image: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-});
