@@ -8,9 +8,10 @@ const chevreSound = require('../assets/audio/chevre.mp3');
 export default function HomeScreen() {
   const player = useAudioPlayer(chevreSound);
 
-  const playSound = async () => {
+  const playSound = () => {
     try {
-      await player.play();
+      if (player.paused) player.play();
+      else  player.seekTo(0);
     } catch (error) {
       console.error("Failed to play sound:", error);
       // Handle error (e.g., show an alert to the user)
