@@ -209,8 +209,7 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
         const targetParam = mainGainNodeForParam;
 
         console.log(`  Source: LFOGain Node (ID: ${(lfoGainNode as any).id}, Context ID: ${(lfoGainNode.context as any)?.instanceId})`);
-        console.log(`  Target Node for Param: MainGain Node (ID: ${(mainGainNodeForParam as any).id}, Context ID: ${(mainGainNodeForParam.context as any)?.instanceId})`);
-        console.log(`  Target Param: gain, (Param's own Context ID: ${((targetParam as any).context as any)?.instanceId})`);
+        console.log(`  Target Node for LFO Mod: MainGain Node (ID: ${(mainGainNodeForParam as any).id}, Context ID: ${(mainGainNodeForParam.context as any)?.instanceId})`);
         
         lfoGainNode.connect(targetParam);
 
@@ -226,13 +225,20 @@ export default function GoatRnAudioApiPitchAndLfoScreen() {
       if (!isActive.value) return;
       gestureX.value = event.x;
       gestureY.value = event.y;
-      const audioContext = audioContextRef.current; // Added for safety
+      const audioContext = audioContextRef.current; // Ensure audioContext is in scope
 
       if (playerNodeRef.current?.playbackRate && audioContext) {
-        playerNodeRef.current.playbackRate.value = calculatePlaybackRate(event.x, containerSize.width);
+        const newRate = calculatePlaybackRate(event.x, containerSize.width);
+        playerNodeRef.current.playbackRate.value = newRate;
       }
       if (lfoNodeRef.current?.frequency && audioContext) {
-        lfoNodeRef.current.frequency.value = calculateLfoFrequency(event.y, containerSize.height);
+        const newLfoFreq = calculateLfoFrequency(event.y, containerSize.height);
+        console.log(`[Gesture Update] event.y: ${event.y.toFixed(2)}, containerH: ${containerSize.height.toFixed(2)}, LFO Freq: ${newLfoFreq.toFixed(2)}`);
+        lfoNodeRef.current.frequency.value = newLfoFreq;
+      } else {
+        if (isActive.value) {
+            console.warn("[Gesture Update] LFO Node or its frequency parameter not available or audioContext missing.");
+        }
       }
     })
     .onFinalize((event, success) => {
