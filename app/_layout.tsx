@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="goat-rn-audio-api-basic" options={{ headerShown: false }} />
         <Stack.Screen name="goat-rn-audio-api-playback" options={{ headerShown: false }} />
         <Stack.Screen name="goat-rn-audio-api-playback-pitch" options={{ headerShown: false }} />
+        <Stack.Screen name="goat-rn-audio-api-playback-and-lfo" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
