@@ -94,7 +94,7 @@ export default function GoatRnAudioApiScreen() {
       <Pressable onPressIn={meeeeh} disabled={isLoading} className={`flex-1 ${isLoading ? 'opacity-50' : ''}`}>
         <Image
           source={chevreImage}
-          className="w-full h-full active:scale-110 transition-transform duration-400 ease-in-out"
+          className="w-full h-full active:scale-110 transition-transform duration-400 ease-in-out pointer-events-none select-none"
           contentFit="cover"
         />
       </Pressable>
