@@ -24,13 +24,14 @@ const LFO_MIN_DEPTH = 0;  // Min LFO depth (no effect at center)
 const LFO_MAX_DEPTH = 1; // Max LFO depth (30% volume modulation at top)
 const BASE_GAIN = 0.7; // Base volume level
 
-// Flanger parameters for lower Y-axis
-const FLANGER_MIN_DELAY = 0.001; // Min delay time (1ms)
-const FLANGER_MAX_DELAY = 0.003; // Max delay time (8ms)
-const FLANGER_LFO_MIN_FREQ = 2; // Min flanger LFO frequency
-const FLANGER_LFO_MAX_FREQ = 10;   // Max flanger LFO frequency
-const FLANGER_FEEDBACK = 0.5;     // Feedback amount for flanger
-const FLANGER_MIX = 0.8;          // Wet/dry mix for flanger
+// High-pass filter parameters for lower Y-axis
+const FILTER_MIN_FREQ = 20;      // Min filter frequency (20Hz - no filtering)
+const FILTER_MAX_FREQ = 8000;    // Max filter frequency (8kHz - heavy filtering)
+const FILTER_LFO_MIN_FREQ = 0.2; // Min filter LFO frequency
+const FILTER_LFO_MAX_FREQ = 25;   // Max filter LFO frequency
+const FILTER_Q = 1;              // Filter resonance
+const FILTER_LFO_DEPTH_MIN = 500;  // No LFO modulation at center
+const FILTER_LFO_DEPTH_MAX = 4000; // Max LFO sweep range (±3kHz)
 
 // Create an animatable version of ExpoImage
 const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
@@ -56,6 +57,11 @@ export default function GoatRnAudioApiPitchScreen() {
   const flangerFeedbackNodeRef = useRef<GainNode | null>(null);
   const flangerMixNodeRef = useRef<GainNode | null>(null);
   const flangerDryNodeRef = useRef<GainNode | null>(null);
+
+  // High-pass filter effect nodes
+  const filterNodeRef = useRef<BiquadFilterNode | null>(null);
+  const filterLfoNodeRef = useRef<OscillatorNode | null>(null);
+  const filterLfoGainNodeRef = useRef<GainNode | null>(null);
 
   // Reanimated shared values for both X and Y
   const gestureX = useSharedValue(0);
@@ -137,26 +143,25 @@ export default function GoatRnAudioApiPitchScreen() {
     return { frequency, depth };
   };
 
-  // Calculate flanger parameters based on Y position (lower half only)
-  const calculateFlangerParams = (normalizedY: number) => {
+  // Calculate high-pass filter parameters based on Y position (lower half only)
+  const calculateFilterParams = (normalizedY: number) => {
     if (normalizedY >= 0) {
-      // Upper half or center - no flanger effect
+      // Upper half or center - no filter effect
       return { 
-        delayTime: FLANGER_MIN_DELAY, 
-        lfoFreq: FLANGER_LFO_MIN_FREQ, 
-        lfoDepth: 0,
-        mix: 0 
+        baseFreq: FILTER_MIN_FREQ, 
+        lfoFreq: FILTER_LFO_MIN_FREQ, 
+        lfoDepth: FILTER_LFO_DEPTH_MIN,
+        intensity: 0 
       };
     }
     
     // Lower half - scale from 0 to 1 (absolute value since normalizedY is negative)
     const intensity = Math.abs(normalizedY); // 0 at center, 1 at bottom
-    const delayTime = FLANGER_MIN_DELAY + (intensity * (FLANGER_MAX_DELAY - FLANGER_MIN_DELAY));
-    const lfoFreq = FLANGER_LFO_MIN_FREQ + (intensity * (FLANGER_LFO_MAX_FREQ - FLANGER_LFO_MIN_FREQ));
-    const lfoDepth = intensity * (FLANGER_MAX_DELAY - FLANGER_MIN_DELAY) * 0.5; // LFO modulates delay time
-    const mix = intensity * FLANGER_MIX;
+    const baseFreq = FILTER_MIN_FREQ + (intensity * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+    const lfoFreq = FILTER_LFO_MIN_FREQ + (intensity * (FILTER_LFO_MAX_FREQ - FILTER_LFO_MIN_FREQ));
+    const lfoDepth = intensity * FILTER_LFO_DEPTH_MAX; // LFO modulates filter frequency
     
-    return { delayTime, lfoFreq, lfoDepth, mix };
+    return { baseFreq, lfoFreq, lfoDepth, intensity };
   };
 
   const panGesture = Gesture.Pan()
@@ -216,6 +221,18 @@ export default function GoatRnAudioApiPitchScreen() {
           flangerDryNodeRef.current.disconnect();
         }
         
+        // Clean up filter nodes
+        if (filterLfoNodeRef.current) {
+          filterLfoNodeRef.current.stop();
+          filterLfoNodeRef.current.disconnect();
+        }
+        if (filterNodeRef.current) {
+          filterNodeRef.current.disconnect();
+        }
+        if (filterLfoGainNodeRef.current) {
+          filterLfoGainNodeRef.current.disconnect();
+        }
+        
         // Create audio nodes using native Web Audio API
         const newPlayerNode = audioContext.createBufferSource();
         newPlayerNode.buffer = audioBuffer;
@@ -229,14 +246,14 @@ export default function GoatRnAudioApiPitchScreen() {
         lfoNode.type = 'sine';
         const lfoGain = audioContext.createGain();
         
-        // Flanger nodes (for lower Y-axis)
-        const delayNode = audioContext.createDelay(FLANGER_MAX_DELAY);
-        const flangerLfo = audioContext.createOscillator();
-        flangerLfo.type = 'sine';
-        const flangerLfoGain = audioContext.createGain();
-        const flangerFeedback = audioContext.createGain();
-        const flangerMix = audioContext.createGain(); // Wet signal
-        const flangerDry = audioContext.createGain();  // Dry signal
+        // High-pass filter nodes (for lower Y-axis)
+        const filterNode = audioContext.createBiquadFilter();
+        filterNode.type = 'highpass';
+        filterNode.Q.setValueAtTime(FILTER_Q, audioContext.currentTime);
+        
+        const filterLfo = audioContext.createOscillator();
+        filterLfo.type = 'sine';
+        const filterLfoGain = audioContext.createGain();
         
         // Set initial playback rate based on X position
         const initialRate = calculatePlaybackRate(event.x, containerSize.width);
@@ -245,42 +262,28 @@ export default function GoatRnAudioApiPitchScreen() {
         // Set initial effect parameters based on Y position
         const normalizedY = getNormalizedYCentered(event.y, containerSize.height);
         const lfoParams = calculateLFOParams(normalizedY);
-        const flangerParams = calculateFlangerParams(normalizedY);
+        const filterParams = calculateFilterParams(normalizedY);
         
         // Configure tremolo LFO
         lfoNode.frequency.setValueAtTime(lfoParams.frequency, audioContext.currentTime);
         lfoGain.gain.setValueAtTime(lfoParams.depth, audioContext.currentTime);
         
-        // Configure flanger
-        delayNode.delayTime.setValueAtTime(flangerParams.delayTime, audioContext.currentTime);
-        flangerLfo.frequency.setValueAtTime(flangerParams.lfoFreq, audioContext.currentTime);
-        flangerLfoGain.gain.setValueAtTime(flangerParams.lfoDepth, audioContext.currentTime);
-        flangerFeedback.gain.setValueAtTime(FLANGER_FEEDBACK, audioContext.currentTime);
-        flangerMix.gain.setValueAtTime(flangerParams.mix, audioContext.currentTime);
-        flangerDry.gain.setValueAtTime(1 - flangerParams.mix, audioContext.currentTime);
+        // Configure filter
+        filterNode.frequency.setValueAtTime(filterParams.baseFreq, audioContext.currentTime);
+        filterLfo.frequency.setValueAtTime(filterParams.lfoFreq, audioContext.currentTime);
+        filterLfoGain.gain.setValueAtTime(filterParams.lfoDepth, audioContext.currentTime);
         
         // Connect the audio graph
-        // Main signal path: Player → MainGain → [Dry/Wet Split] → Destination
+        // Main signal path: Player → MainGain → Filter → Destination
         newPlayerNode.connect(mainGain);
+        mainGain.connect(filterNode);
+        filterNode.connect(audioContext.destination);
         
-        // Split signal for flanger dry/wet mix
-        mainGain.connect(flangerDry); // Dry path
-        mainGain.connect(delayNode);  // Wet path through delay
-        
-        // Flanger wet path: Delay → FlangerMix → Destination
-        delayNode.connect(flangerMix);
-        
-        // Flanger feedback: Delay → Feedback → Delay (creates resonance)
-        delayNode.connect(flangerFeedback);
-        flangerFeedback.connect(delayNode);
-        
-        // Flanger LFO modulates delay time
-        flangerLfo.connect(flangerLfoGain);
-        flangerLfoGain.connect(delayNode.delayTime);
-        
-        // Mix dry and wet signals to destination
-        flangerDry.connect(audioContext.destination);
-        flangerMix.connect(audioContext.destination);
+        // Filter LFO modulates filter frequency
+        if (filterParams.lfoDepth > 0) {
+          filterLfo.connect(filterLfoGain);
+          filterLfoGain.connect(filterNode.frequency);
+        }
         
         // Connect tremolo LFO to main gain for volume modulation (only if there's depth)
         if (lfoParams.depth > 0) {
@@ -293,19 +296,16 @@ export default function GoatRnAudioApiPitchScreen() {
         mainGainNodeRef.current = mainGain;
         lfoNodeRef.current = lfoNode;
         lfoGainNodeRef.current = lfoGain;
-        delayNodeRef.current = delayNode;
-        flangerLfoNodeRef.current = flangerLfo;
-        flangerLfoGainNodeRef.current = flangerLfoGain;
-        flangerFeedbackNodeRef.current = flangerFeedback;
-        flangerMixNodeRef.current = flangerMix;
-        flangerDryNodeRef.current = flangerDry;
+        filterNodeRef.current = filterNode;
+        filterLfoNodeRef.current = filterLfo;
+        filterLfoGainNodeRef.current = filterLfoGain;
         
         // Start audio
         lfoNode.start(audioContext.currentTime);
-        flangerLfo.start(audioContext.currentTime);
+        filterLfo.start(audioContext.currentTime);
         newPlayerNode.start(audioContext.currentTime);
         
-        console.log("[Gesture] Sound started. Rate:", initialRate, "LFO:", lfoParams, "Flanger:", flangerParams);
+        console.log("[Gesture] Sound started. Rate:", initialRate, "LFO:", lfoParams, "Filter:", filterParams);
       } catch (error) {
         console.error("[Gesture] Failed to start sound:", error);
       }
@@ -332,21 +332,33 @@ export default function GoatRnAudioApiPitchScreen() {
       if (lfoNodeRef.current && lfoGainNodeRef.current && mainGainNodeRef.current) {
         const normalizedY = getNormalizedYCentered(event.y, containerSize.height);
         const lfoParams = calculateLFOParams(normalizedY);
-        const flangerParams = calculateFlangerParams(normalizedY);
+        const filterParams = calculateFilterParams(normalizedY);
         
         // Update tremolo LFO (upper Y-axis)
         lfoNodeRef.current.frequency.setValueAtTime(lfoParams.frequency, audioContext.currentTime);
         lfoGainNodeRef.current.gain.setValueAtTime(lfoParams.depth, audioContext.currentTime);
         
-        // Update flanger parameters (lower Y-axis)
-        if (delayNodeRef.current && flangerLfoNodeRef.current && flangerLfoGainNodeRef.current && 
-            flangerMixNodeRef.current && flangerDryNodeRef.current) {
+        // Update filter parameters (lower Y-axis)
+        if (filterNodeRef.current && filterLfoNodeRef.current && filterLfoGainNodeRef.current) {
+          filterNodeRef.current.frequency.setValueAtTime(filterParams.baseFreq, audioContext.currentTime);
+          filterLfoNodeRef.current.frequency.setValueAtTime(filterParams.lfoFreq, audioContext.currentTime);
+          filterLfoGainNodeRef.current.gain.setValueAtTime(filterParams.lfoDepth, audioContext.currentTime);
           
-          delayNodeRef.current.delayTime.setValueAtTime(flangerParams.delayTime, audioContext.currentTime);
-          flangerLfoNodeRef.current.frequency.setValueAtTime(flangerParams.lfoFreq, audioContext.currentTime);
-          flangerLfoGainNodeRef.current.gain.setValueAtTime(flangerParams.lfoDepth, audioContext.currentTime);
-          flangerMixNodeRef.current.gain.setValueAtTime(flangerParams.mix, audioContext.currentTime);
-          flangerDryNodeRef.current.gain.setValueAtTime(1 - flangerParams.mix, audioContext.currentTime);
+          // Handle filter LFO connection/disconnection based on depth
+          if (filterParams.lfoDepth > 0) {
+            try {
+              filterLfoNodeRef.current.connect(filterLfoGainNodeRef.current);
+              filterLfoGainNodeRef.current.connect(filterNodeRef.current.frequency);
+            } catch (e) {
+              // Already connected
+            }
+          } else {
+            try {
+              filterLfoGainNodeRef.current.disconnect(filterNodeRef.current.frequency);
+            } catch (e) {
+              // Already disconnected
+            }
+          }
         }
         
         // Handle tremolo LFO connection/disconnection based on depth
@@ -432,24 +444,20 @@ export default function GoatRnAudioApiPitchScreen() {
         delayNodeRef.current = null;
       }
       
-      if (flangerLfoGainNodeRef.current) {
-        flangerLfoGainNodeRef.current.disconnect();
-        flangerLfoGainNodeRef.current = null;
+      if (filterLfoNodeRef.current) {
+        filterLfoNodeRef.current.stop();
+        filterLfoNodeRef.current.disconnect();
+        filterLfoNodeRef.current = null;
       }
       
-      if (flangerFeedbackNodeRef.current) {
-        flangerFeedbackNodeRef.current.disconnect();
-        flangerFeedbackNodeRef.current = null;
+      if (filterNodeRef.current) {
+        filterNodeRef.current.disconnect();
+        filterNodeRef.current = null;
       }
       
-      if (flangerMixNodeRef.current) {
-        flangerMixNodeRef.current.disconnect();
-        flangerMixNodeRef.current = null;
-      }
-      
-      if (flangerDryNodeRef.current) {
-        flangerDryNodeRef.current.disconnect();
-        flangerDryNodeRef.current = null;
+      if (filterLfoGainNodeRef.current) {
+        filterLfoGainNodeRef.current.disconnect();
+        filterLfoGainNodeRef.current = null;
       }
       
       console.log("[Gesture] All audio nodes stopped and disconnected.");
