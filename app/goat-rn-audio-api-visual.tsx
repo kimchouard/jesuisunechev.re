@@ -34,6 +34,10 @@ const BAR_SPACING = 0; // Space between bars (0 = no space, higher = more space)
 export default function GoatAudioVisualScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : Dimensions.get('window').width,
+    height: typeof window !== 'undefined' ? window.innerHeight : Dimensions.get('window').height
+  });
   const [frequencyData, setFrequencyData] = useState<Uint8Array>(
     new Uint8Array(FFT_SIZE / 2).fill(0)
   );
@@ -49,6 +53,28 @@ export default function GoatAudioVisualScreen() {
 
   // Shared value for image scale animation
   const imageScale = useSharedValue(1);
+
+  // Handle window resize for iframe compatibility
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setScreenSize({
+          width: window.innerWidth,
+          height: window.innerHeight
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      // Initial size check
+      handleResize();
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, []);
 
   // Function to update frequency data
   const updateFrequencyData = () => {
@@ -88,6 +114,9 @@ export default function GoatAudioVisualScreen() {
   useEffect(() => {
     const initAudio = async () => {
       try {
+        // Wait a bit for iframe to be fully loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         if (!audioContextRef.current) {
           audioContextRef.current = new AudioContext();
         }
@@ -99,10 +128,7 @@ export default function GoatAudioVisualScreen() {
           return;
         }
 
-        // Resume AudioContext if suspended
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
+        console.log("AudioContext state:", audioContext.state);
 
         // Create analyser node
         if (!analyserRef.current) {
@@ -113,35 +139,30 @@ export default function GoatAudioVisualScreen() {
         }
 
         // Load ambient background audio
-        const ambientResponse = await fetch(ambientSound);
-        const ambientArrayBuffer = await ambientResponse.arrayBuffer();
-        
-        audioContext.decodeAudioData(ambientArrayBuffer)
-          .then((decodedBuffer) => {
-            ambientBufferRef.current = decodedBuffer as RnAudioBuffer;
-            console.log("Ambient audio loaded");
-          })
-          .catch((err) => {
-            console.error('Error decoding ambient audio:', err);
-          });
+        try {
+          const ambientResponse = await fetch(ambientSound);
+          const ambientArrayBuffer = await ambientResponse.arrayBuffer();
+          
+          const decodedBuffer = await audioContext.decodeAudioData(ambientArrayBuffer);
+          ambientBufferRef.current = decodedBuffer as RnAudioBuffer;
+          console.log("Ambient audio loaded successfully");
+        } catch (err) {
+          console.error('Error loading ambient audio:', err);
+        }
 
-        // Load goat sound
-        const goatResponse = await fetch(chevreSound);
-        const goatArrayBuffer = await goatResponse.arrayBuffer();
-        
-        audioContext.decodeAudioData(goatArrayBuffer)
-          .then((decodedBuffer) => {
-            console.log("Goat audio loaded");
-            
-            // Don't start ambient background loop automatically
-            setIsLoading(false);
-          })
-          .catch((err) => {
-            console.error('Error decoding goat audio:', err);
-            setIsLoading(false);
-          });
+        // Load goat sound (keeping for compatibility)
+        try {
+          const goatResponse = await fetch(chevreSound);
+          const goatArrayBuffer = await goatResponse.arrayBuffer();
+          
+          const decodedBuffer = await audioContext.decodeAudioData(goatArrayBuffer);
+          console.log("Goat audio loaded successfully");
+        } catch (err) {
+          console.error('Error loading goat audio:', err);
+        }
 
-        console.log("Audio initialization started");
+        setIsLoading(false);
+        console.log("Audio initialization completed");
       } catch (error) {
         console.error("Failed to initialize audio:", error);
         setIsLoading(false);
@@ -154,7 +175,7 @@ export default function GoatAudioVisualScreen() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (audioContextRef.current) {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
       }
     };
@@ -184,6 +205,12 @@ export default function GoatAudioVisualScreen() {
         imageScale.value = withTiming(1, { duration: 200 });
         console.log("Ambient sound stopped");
       } else {
+        // Resume AudioContext if suspended (important for iframe environments)
+        if (audioContextRef.current.state === 'suspended') {
+          console.log("Resuming suspended AudioContext...");
+          await audioContextRef.current.resume();
+        }
+        
         // Start ambient sound
         const ambientSource = await audioContextRef.current.createBufferSource();
         ambientSource.buffer = ambientBufferRef.current;
@@ -227,8 +254,8 @@ export default function GoatAudioVisualScreen() {
       return smoothedFrequencyData.map((value, index) => {
         const height = getBarHeight(value);
         const halfHeight = height / 2;
-        const barWidth = (SCREEN_WIDTH - 4) / FREQUENCY_BARS_COUNT - BAR_SPACING;
-        const barLeft = index * ((SCREEN_WIDTH - 4) / FREQUENCY_BARS_COUNT) + BAR_SPACING / 2;
+        const barWidth = (screenSize.width - 4) / FREQUENCY_BARS_COUNT - BAR_SPACING;
+        const barLeft = index * ((screenSize.width - 4) / FREQUENCY_BARS_COUNT) + BAR_SPACING / 2;
         
         if (MIRROR_VISUALIZATION) {
           // Mirrored bars - top grows down, bottom grows up
@@ -283,8 +310,8 @@ export default function GoatAudioVisualScreen() {
         <>
           {/* Connecting lines only - no dots */}
           {smoothedFrequencyData.slice(0, -1).map((value, index) => {
-            const x1 = (index / (FREQUENCY_BARS_COUNT - 1)) * (SCREEN_WIDTH - 4);
-            const x2 = ((index + 1) / (FREQUENCY_BARS_COUNT - 1)) * (SCREEN_WIDTH - 4);
+            const x1 = (index / (FREQUENCY_BARS_COUNT - 1)) * (screenSize.width - 4);
+            const x2 = ((index + 1) / (FREQUENCY_BARS_COUNT - 1)) * (screenSize.width - 4);
             const height1 = getBarHeight(value);
             const height2 = getBarHeight(smoothedFrequencyData[index + 1]);
             
@@ -369,8 +396,8 @@ export default function GoatAudioVisualScreen() {
           {/* Area fill - full opacity */}
           {smoothedFrequencyData.map((value, index) => {
             const height = getBarHeight(value);
-            const x = (index / FREQUENCY_BARS_COUNT) * (SCREEN_WIDTH - 4);
-            const width = (SCREEN_WIDTH - 4) / FREQUENCY_BARS_COUNT;
+            const x = (index / FREQUENCY_BARS_COUNT) * (screenSize.width - 4);
+            const width = (screenSize.width - 4) / FREQUENCY_BARS_COUNT;
             const halfHeight = height / 2;
             
             if (MIRROR_VISUALIZATION) {
