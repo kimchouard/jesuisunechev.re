@@ -14,6 +14,9 @@ import Animated, {
 const chevreImage = require('../assets/images/chevre_de_verzasca.jpg');
 const audioFileUri = require('../assets/audio/chevre.mp3');
 
+// Effect configuration
+const FILTER_TYPE: BiquadFilterType = 'highpass'; // Change to 'lowpass' to test low-pass filter
+
 const MAX_ROTATE_Y_DEGREES = 45; // Max rotation angle around Y axis
 const MAX_ROTATE_X_DEGREES = 30; // Max rotation angle around X axis
 
@@ -24,7 +27,7 @@ const LFO_MIN_DEPTH = 0;  // Min LFO depth (no effect at center)
 const LFO_MAX_DEPTH = 1; // Max LFO depth (30% volume modulation at top)
 const BASE_GAIN = 0.7; // Base volume level
 
-// High-pass filter parameters for lower Y-axis
+// Filter parameters for lower Y-axis
 const FILTER_MIN_FREQ = 20;      // Min filter frequency (20Hz - no filtering)
 const FILTER_MAX_FREQ = 8000;    // Max filter frequency (8kHz - heavy filtering)
 const FILTER_LFO_MIN_FREQ = 0.2; // Min filter LFO frequency
@@ -114,12 +117,22 @@ export default function GoatRnAudioApiPitchScreen() {
     const normalizedX = Math.max(0, Math.min(1, locationX / width));
 
     let rate;
-    if (normalizedX < 0.5) {
-      rate = normalizedX * 2;
+    if (normalizedX < 0.25) {
+      // Leftmost quarter: very slow playback from 0.05x to 0.5x
+      // Note: Web Audio API doesn't support negative playback rates for reverse
+      const slowIntensity = normalizedX / 0.25; // 0 to 1
+      rate = 0.05 + slowIntensity * 0.45; // 0.05 to 0.5
+    } else if (normalizedX < 0.5) {
+      // Left half (excluding leftmost quarter): slow down from 0.5x to 1x
+      const slowIntensity = (normalizedX - 0.25) / 0.25; // 0 to 1
+      rate = 0.5 + slowIntensity * 0.5; // 0.5 to 1
     } else {
-      rate = 1 + (normalizedX - 0.5) * 2;
+      // Right half: speed up from 1x to 3x
+      const speedIntensity = (normalizedX - 0.5) / 0.5; // 0 to 1
+      rate = 1 + speedIntensity * 2; // 1 to 3
     }
-    return Math.max(0, Math.min(3, rate));
+    
+    return Math.max(0.05, Math.min(3, rate));
   };
 
   // Calculate normalized Y position (-1 to 1, where 0 is center)
@@ -143,12 +156,12 @@ export default function GoatRnAudioApiPitchScreen() {
     return { frequency, depth };
   };
 
-  // Calculate high-pass filter parameters based on Y position (lower half only)
+  // Calculate filter parameters based on Y position (lower half only)
   const calculateFilterParams = (normalizedY: number) => {
     if (normalizedY >= 0) {
       // Upper half or center - no filter effect
       return { 
-        baseFreq: FILTER_MIN_FREQ, 
+        baseFreq: FILTER_TYPE === 'lowpass' ? FILTER_MAX_FREQ : FILTER_MIN_FREQ, 
         lfoFreq: FILTER_LFO_MIN_FREQ, 
         lfoDepth: FILTER_LFO_DEPTH_MIN,
         intensity: 0 
@@ -157,7 +170,16 @@ export default function GoatRnAudioApiPitchScreen() {
     
     // Lower half - scale from 0 to 1 (absolute value since normalizedY is negative)
     const intensity = Math.abs(normalizedY); // 0 at center, 1 at bottom
-    const baseFreq = FILTER_MIN_FREQ + (intensity * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+    
+    let baseFreq;
+    if (FILTER_TYPE === 'lowpass') {
+      // For low-pass: start high (no filtering) and go low (heavy filtering)
+      baseFreq = FILTER_MAX_FREQ - (intensity * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+    } else {
+      // For high-pass: start low (no filtering) and go high (heavy filtering)  
+      baseFreq = FILTER_MIN_FREQ + (intensity * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
+    }
+    
     const lfoFreq = FILTER_LFO_MIN_FREQ + (intensity * (FILTER_LFO_MAX_FREQ - FILTER_LFO_MIN_FREQ));
     const lfoDepth = intensity * FILTER_LFO_DEPTH_MAX; // LFO modulates filter frequency
     
@@ -246,9 +268,9 @@ export default function GoatRnAudioApiPitchScreen() {
         lfoNode.type = 'sine';
         const lfoGain = audioContext.createGain();
         
-        // High-pass filter nodes (for lower Y-axis)
+        // Filter nodes (for lower Y-axis)
         const filterNode = audioContext.createBiquadFilter();
-        filterNode.type = 'highpass';
+        filterNode.type = FILTER_TYPE;
         filterNode.Q.setValueAtTime(FILTER_Q, audioContext.currentTime);
         
         const filterLfo = audioContext.createOscillator();
