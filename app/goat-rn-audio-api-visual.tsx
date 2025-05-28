@@ -13,13 +13,13 @@ const chevreImage = require('../assets/images/chevre_de_verzasca.jpg');
 const chevreSound = require('../assets/audio/chevre.mp3');
 const ambientSound = require('../assets/audio/mountains-alps-loop.mp3');
 
-const BACKGROUND_COLOR = '#0B211C';
-// const BACKGROUND_COLOR = '#1B1B1F';
+// const BACKGROUND_COLOR = '#0B211C';
+const BACKGROUND_COLOR = '#1B1B1F';
 
 const FFT_SIZE = 512;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const VISUALIZATION_HEIGHT = 4000;
-const FREQUENCY_BARS_COUNT = 50; // Number of frequency bars to display (adjustable)
+const VISUALIZATION_HEIGHT = 2500;
+const FREQUENCY_BARS_COUNT = 30; // Number of frequency bars to display (adjustable)
 // const FREQUENCY_BARS_COUNT = 100; // Number of frequency bars to display (adjustable)
 
 // Visualization style options
@@ -28,7 +28,7 @@ const BAR_BORDER_RADIUS = 8; // Roundness of bars (0 = square, higher = more rou
 const LINE_THICKNESS = 3; // Thickness of the line visualization
 const SMOOTHING_FACTOR = 0.7; // How much to smooth the visualization (0-1, higher = smoother)
 const MIRROR_VISUALIZATION = true; // Whether to mirror the visualization from center
-const BAR_SPACING = 0; // Space between bars (0 = no space, higher = more space)
+const BAR_SPACING = -0.25; // Space between bars (0 = no space, higher = more space)
 // const BAR_SPACING = 0.5;
 
 export default function GoatAudioVisualScreen() {
