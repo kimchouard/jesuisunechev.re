@@ -451,7 +451,7 @@ export default function GoatAudioVisualScreen() {
         <Animated.View style={[{ flex: 1 }, animatedImageStyle]}>
           <Image
             source={chevreImage}
-            className="w-full h-full pointer-events-none"
+            className="w-full h-full pointer-events-none select-none"
             contentFit="cover"
             style={{ opacity: isLoading ? 0.5 : 1 }}
           />
@@ -482,7 +482,7 @@ export default function GoatAudioVisualScreen() {
       )}
       
       {/* Play/Pause indicator */}
-      {!isLoading && (
+      {/* {!isLoading && (
         <View
           style={{
             position: 'absolute',
@@ -498,7 +498,7 @@ export default function GoatAudioVisualScreen() {
             {isAmbientPlaying ? '⏸️ Tap to Pause' : '▶️ Tap to Play'}
           </Animated.Text>
         </View>
-      )}
+      )} */}
     </View>
   );
 }

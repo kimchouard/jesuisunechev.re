@@ -22,7 +22,7 @@ export default function HomeScreen() {
       <Pressable onPressIn={playSound} className='flex-1'>
         <Image
           source={chevreImage}
-          className="w-full h-full active:scale-110 transition-transform duration-400 ease-in-out pointer-events-none"
+          className="w-full h-full active:scale-110 transition-transform duration-400 ease-in-out select-none"
           contentFit="cover"
         />
       </Pressable>
