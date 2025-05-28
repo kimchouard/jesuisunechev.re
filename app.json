@@ -34,7 +34,12 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "react-native-audio-api"
+      [
+        "react-native-audio-api",
+        {
+          "iosBackgroundMode": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
