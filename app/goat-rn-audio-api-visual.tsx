@@ -175,6 +175,11 @@ export default function GoatAudioVisualScreen() {
           cancelAnimationFrame(animationFrameRef.current);
           animationFrameRef.current = null;
         }
+        
+        // Reset visualization data to zero
+        setFrequencyData(new Uint8Array(FFT_SIZE / 2).fill(0));
+        setSmoothedFrequencyData(new Array(FREQUENCY_BARS_COUNT).fill(0));
+        
         setIsAmbientPlaying(false);
         imageScale.value = withTiming(1, { duration: 200 });
         console.log("Ambient sound stopped");
@@ -454,7 +459,7 @@ export default function GoatAudioVisualScreen() {
       </Pressable>
       
       {/* Frequency Domain Visualization */}
-      <FrequencyVisualization />
+      {isAmbientPlaying && <FrequencyVisualization />}
       
       {/* Loading indicator */}
       {isLoading && (
