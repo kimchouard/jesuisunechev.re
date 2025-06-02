@@ -18,14 +18,14 @@ const audioFileUri = require('../assets/audio/chevre.mp3');
 
 const MAX_ROTATE_Y_DEGREES = 45;
 const MAX_ROTATE_X_DEGREES = 30;
-const LFO_MIN_FREQ_EFFECT = 0.5; // Min speed of LFO for effects
-const LFO_MAX_FREQ_EFFECT = 8;   // Max speed of LFO for effects (e.g., wah speed)
-const FILTER_MIN_FREQ = 200;     // Base frequency of filter when Y is at center or below
-const FILTER_MAX_FREQ = 3000;    // Max frequency for filter sweep (wah top)
-const FILTER_MIN_Q = 0.5;        // Filter Q when Y is at center or below (less resonance)
-const FILTER_MAX_Q = 10;         // Filter Q at max Y for strong wah resonance
-const LFO_FILTER_SWEEP_DEPTH_MIN = 50; // Min amount LFO moves filter freq (Hz)
-const LFO_FILTER_SWEEP_DEPTH_MAX = 1500; // Max amount LFO moves filter freq (Hz)
+const LFO_MIN_FREQ_WAH = 0.5; // Min speed of LFO for WAH effect
+const LFO_MAX_FREQ_WAH = 6;   // Max speed of LFO for WAH effect
+const FILTER_TRANSPARENT_FREQ = 20000; // For neutral filter
+const FILTER_WAH_BASE_FREQ_AT_TOP = 800; // Base/Center freq for wah at max Y intensity
+const FILTER_MIN_Q_NEUTRAL = 0.1; // Filter Q when neutral
+const FILTER_MAX_Q_WAH = 8;      // Filter Q at max Y for strong wah resonance
+const LFO_SWEEP_DEPTH_MIN_WAH = 0; // LFO has no effect on filter at center Y
+const LFO_SWEEP_DEPTH_MAX_WAH = 700; // Max LFO sweeps filter freq by +/- 700Hz at top Y
 const MAIN_GAIN_BASE = 0.7; // Keep main volume reasonable
 const FIXED_PLAYBACK_RATE = 1;
 
@@ -132,7 +132,7 @@ export default function GoatCreativeAudioEffectsScreen() {
       interactionScale.value = withTiming(0.9, { duration: 200 });
       gestureX.value = event.x;
       gestureY.value = event.y;
-      console.log("[Gesture] onBegin");
+      console.log("[Gesture] onBegin - LFO Filter Wah Logic Update");
 
       const audioContext = audioContextRef.current;
       const audioBuffer = audioBufferRef.current;
@@ -147,8 +147,7 @@ export default function GoatCreativeAudioEffectsScreen() {
         filterNodeRef.current?.disconnect();
 
         const pNode = await audioContext.createBufferSource();
-        pNode.buffer = audioBuffer;
-        pNode.loop = true;
+        pNode.buffer = audioBuffer; pNode.loop = true;
         if (pNode.playbackRate) pNode.playbackRate.value = FIXED_PLAYBACK_RATE;
         playerNodeRef.current = pNode;
 
@@ -159,42 +158,52 @@ export default function GoatCreativeAudioEffectsScreen() {
         const filter = await audioContext.createBiquadFilter();
         filter.type = 'lowpass';
         filterNodeRef.current = filter;
-
+        
         const lfo = await audioContext.createOscillator();
-        lfo.type = 'sine';
+        lfo.type = 'sine'; 
         lfoNodeRef.current = lfo;
 
         const lGain = await audioContext.createGain();
         lfoGainNodeRef.current = lGain;
 
-        const normYCentered = getNormalizedYCentered(event.y, containerSize.height);
-        
-        const initialLfoFreq = LFO_MIN_FREQ_EFFECT + (Math.abs(normYCentered) * (LFO_MAX_FREQ_EFFECT - LFO_MIN_FREQ_EFFECT));
-        lfo.frequency.value = initialLfoFreq;
-
-        if (normYCentered >= 0) {
-          console.log("[onBegin] Activating Filter Wah");
-          const yPosUp = normYCentered;
-          filter.frequency.value = FILTER_MIN_FREQ + (yPosUp * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
-          filter.Q.value = FILTER_MIN_Q + (yPosUp * (FILTER_MAX_Q - FILTER_MIN_Q));
-          lGain.gain.value = LFO_FILTER_SWEEP_DEPTH_MIN + (yPosUp * (LFO_FILTER_SWEEP_DEPTH_MAX - LFO_FILTER_SWEEP_DEPTH_MIN));
-          lfoGainNodeRef.current.connect(filterNodeRef.current);
-        } else {
-          console.log("[onBegin] Y Down - Neutralizing Filter (Flanger TBD)");
-          filter.frequency.value = FILTER_MAX_FREQ;
-          filter.Q.value = 0.1;
-          lGain.gain.value = 0;
-          lfoGainNodeRef.current.connect(filterNodeRef.current);
-        }
-
         playerNodeRef.current.connect(mainGainNodeRef.current);
         mainGainNodeRef.current.connect(filterNodeRef.current);
         filterNodeRef.current.connect(audioContext.destination);
-        lfoNodeRef.current.connect(lfoGainNodeRef.current);
+        lfoNodeRef.current.connect(lfoGainNodeRef.current); // LFO output to LFO Gain (for depth control)
 
+        const normYCentered = getNormalizedYCentered(event.y, containerSize.height);
+        
+        if (normYCentered >= 0) { // Y is UP from Center (Wah effect)
+          const yPosUp = normYCentered; // 0 at center, 1 at top
+          const baseFilterFreq = FILTER_TRANSPARENT_FREQ - (yPosUp * (FILTER_TRANSPARENT_FREQ - FILTER_WAH_BASE_FREQ_AT_TOP));
+          const filterQ = FILTER_MIN_Q_NEUTRAL + (yPosUp * (FILTER_MAX_Q_WAH - FILTER_MIN_Q_NEUTRAL));
+          const lfoSweepDepth = LFO_SWEEP_DEPTH_MIN_WAH + (yPosUp * (LFO_SWEEP_DEPTH_MAX_WAH - LFO_SWEEP_DEPTH_MIN_WAH));
+          const lfoSpeed = LFO_MIN_FREQ_WAH + (yPosUp * (LFO_MAX_FREQ_WAH - LFO_MIN_FREQ_WAH));
+          
+          filter.frequency.value = baseFilterFreq;
+          filter.Q.value = filterQ;
+          lGain.gain.value = lfoSweepDepth; 
+          lfo.frequency.value = lfoSpeed;
+          
+          console.log(`[onBegin] Filter Wah Active: BaseF: ${baseFilterFreq.toFixed(0)}, Q: ${filterQ.toFixed(1)}, LFO Depth(Gain): ${lfoSweepDepth.toFixed(0)}, LFO Speed: ${lfoSpeed.toFixed(1)}`);
+          try {
+            lfoGainNodeRef.current.connect(filterNodeRef.current.frequency); 
+            console.log("  SUCCESS: lfoGain connected to filter.frequency");
+          } catch (e) {
+            console.error("  ERROR connecting LFO Gain to filter.frequency:", e);
+          }
+        } else { // Y is DOWN from Center (Neutral Filter)
+          console.log("[onBegin] Y Down - Neutralizing Filter (Flanger TBD)");
+          filter.frequency.value = FILTER_TRANSPARENT_FREQ;
+          filter.Q.value = FILTER_MIN_Q_NEUTRAL;
+          lGain.gain.value = 0; // LFO has no effect on filter
+          lfo.frequency.value = LFO_MIN_FREQ_WAH; // LFO slow and no depth
+        }
+        
         lfoNodeRef.current.start(audioContext.currentTime);
         playerNodeRef.current.start(audioContext.currentTime);
-        console.log(`[Gesture] Sound started. LFO Freq: ${initialLfoFreq.toFixed(2)}`);
+        console.log(`[Gesture] Sound started.`);
+
       } catch (error) {
         console.error("[Gesture] Failed to start sound (onBegin try/catch):", error);
       }
@@ -207,18 +216,24 @@ export default function GoatCreativeAudioEffectsScreen() {
       if (!audioContext || !filterNodeRef.current || !lfoNodeRef.current || !lfoGainNodeRef.current) return;
 
       const normYCentered = getNormalizedYCentered(event.y, containerSize.height);
-      const currentLfoFreq = LFO_MIN_FREQ_EFFECT + (Math.abs(normYCentered) * (LFO_MAX_FREQ_EFFECT - LFO_MIN_FREQ_EFFECT));
-      lfoNodeRef.current.frequency.value = currentLfoFreq;
 
-      if (normYCentered >= 0) {
+      if (normYCentered >= 0) { // Y is UP (Wah)
         const yPosUp = normYCentered;
-        filterNodeRef.current.frequency.value = FILTER_MIN_FREQ + (yPosUp * (FILTER_MAX_FREQ - FILTER_MIN_FREQ));
-        filterNodeRef.current.Q.value = FILTER_MIN_Q + (yPosUp * (FILTER_MAX_Q - FILTER_MIN_Q));
-        lfoGainNodeRef.current.gain.value = LFO_FILTER_SWEEP_DEPTH_MIN + (yPosUp * (LFO_FILTER_SWEEP_DEPTH_MAX - LFO_FILTER_SWEEP_DEPTH_MIN));
-      } else {
-        filterNodeRef.current.frequency.value = FILTER_MAX_FREQ;
-        filterNodeRef.current.Q.value = 0.1;
-        lfoGainNodeRef.current.gain.value = 0;
+        const baseFilterFreq = FILTER_TRANSPARENT_FREQ - (yPosUp * (FILTER_TRANSPARENT_FREQ - FILTER_WAH_BASE_FREQ_AT_TOP));
+        const filterQ = FILTER_MIN_Q_NEUTRAL + (yPosUp * (FILTER_MAX_Q_WAH - FILTER_MIN_Q_NEUTRAL));
+        const lfoSweepDepth = LFO_SWEEP_DEPTH_MIN_WAH + (yPosUp * (LFO_SWEEP_DEPTH_MAX_WAH - LFO_SWEEP_DEPTH_MIN_WAH));
+        const lfoSpeed = LFO_MIN_FREQ_WAH + (yPosUp * (LFO_MAX_FREQ_WAH - LFO_MIN_FREQ_WAH));
+
+        filterNodeRef.current.frequency.value = baseFilterFreq;
+        filterNodeRef.current.Q.value = filterQ;
+        lfoGainNodeRef.current.gain.value = lfoSweepDepth;
+        lfoNodeRef.current.frequency.value = lfoSpeed;
+        // console.log(`[Update] Filter Wah: BaseF: ${baseFilterFreq.toFixed(0)}, Q: ${filterQ.toFixed(1)}, LFO Depth(Gain): ${lfoSweepDepth.toFixed(0)}, LFO Speed: ${lfoSpeed.toFixed(1)}`);
+      } else { // Y is DOWN (Neutral Filter)
+        filterNodeRef.current.frequency.value = FILTER_TRANSPARENT_FREQ;
+        filterNodeRef.current.Q.value = FILTER_MIN_Q_NEUTRAL;
+        lfoGainNodeRef.current.gain.value = 0; 
+        lfoNodeRef.current.frequency.value = LFO_MIN_FREQ_WAH;
       }
     })
     .onFinalize((event, success) => {
